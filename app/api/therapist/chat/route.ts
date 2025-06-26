@@ -163,7 +163,8 @@ Now I'd love to hear from you. What's been going on from your side?"`
     const summaryMarkers = [
       "Here's what I've understood about your side of the story:",
       "Here's what I've understood about their perspective so far",
-      "what I've understood about your perspective so far"
+      "what I've understood about your perspective so far",
+      "Here's what I have understood so far from your perspective"
     ]
 
     const hasSummaryFormat = summaryMarkers.some(marker => 
