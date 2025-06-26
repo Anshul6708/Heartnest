@@ -49,39 +49,21 @@ function TherapyChatPageComponent() {
   // Check if we're still determining user type
   const isStillDeterminingUserType = typeof window === 'undefined' || !userTypeReady
 
-  // Helper function to filter messages by partner (replicates therapyService.getTherapyChatHistory logic)
+  // Helper function to filter messages by partner (simple filtering based on partner name)
   const filterMessagesByPartner = useCallback((messages: TherapyMessage[], partnerName: string): TherapyMessage[] => {
-    const partnerMessages: TherapyMessage[] = []
-    let expectingAIResponse = false
-    
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i]
-      
+    return messages.filter(msg => {
       // Include user messages from this partner
       if (msg.role === 'user' && msg.name === partnerName) {
-        partnerMessages.push(msg)
-        expectingAIResponse = true
+        return true
       }
-      // Include AI responses that come after this partner's messages
-      else if (msg.role === 'assistant' && expectingAIResponse) {
-        partnerMessages.push(msg)
-        expectingAIResponse = false
+      
+      // Include AI messages that are specifically for this partner
+      if (msg.role === 'assistant' && msg.name === partnerName) {
+        return true
       }
-      // Include first AI message if it's a conversation starter for this partner
-      else if (msg.role === 'assistant' && partnerMessages.length === 0) {
-        // Check if this is truly the first message in a new conversation thread
-        const hasUserMessagesBefore = messages.slice(0, i).some(m => m.role === 'user' && m.name === partnerName)
-        if (!hasUserMessagesBefore) {
-          partnerMessages.push(msg)
-        }
-      }
-      // Include solution messages (visible to both partners)
-      else if (msg.role === 'assistant' && msg.name === 'SOLUTION') {
-        partnerMessages.push(msg)
-      }
-    }
-    
-    return partnerMessages
+      
+      return false
+    })
   }, [])
 
   // Check if both partners have completed and add final solution as chat message
@@ -93,47 +75,51 @@ function TherapyChatPageComponent() {
       const partnerNames = session.partner_names?.split(' & ') || []
       
       if (summaries.length >= 2 && !bothPartnersCompleted) {
-        // Check if solution message already exists to prevent duplicates
-        // Use cached messages first, fallback to API call if cache is empty
-        const messagesToCheck = allMessages.length > 0 ? allMessages : await therapyService.getAllSessionMessages(sessionId)
-        const solutionExists = messagesToCheck.some(msg => msg.name === 'SOLUTION')
-        
-        if (solutionExists) {
-          setBothPartnersCompleted(true)
-          return
-        }
-        
         setBothPartnersCompleted(true)
         
-        // Partner 2's summary is the final solution (since Partner 2's AI acts as mediator)
+        // Partner 2's summary becomes a regular AI message for Partner 2
+        // Partner 1 gets to see Partner 2's summary in their chat
+        const partner1Name = partnerNames[0]
         const partner2Name = partnerNames[1]
-        const solution = summaries.find(s => s.partner_name === partner2Name)
+        const partner2Summary = summaries.find(s => s.partner_name === partner2Name)
         
-        if (solution) {
-          setFinalSolution(solution)
+        if (partner2Summary && selectedPartner) {
+          // Check if summary message already exists to prevent duplicates
+          const messagesToCheck = allMessages.length > 0 ? allMessages : await therapyService.getAllSessionMessages(sessionId)
+          const summaryExists = messagesToCheck.some(msg => msg.message.includes(partner2Summary.summary_text))
           
-          // Add the final solution as a chat message to both partners
-          const solutionMessage: TherapyMessage = {
-            session_id: sessionId,
-            message: `🎯 **Final Solution & Recommendations**\n\n${solution.summary_text}`,
-            role: 'assistant',
-            name: 'SOLUTION' // Special identifier for solution messages
-          }
-          
-          // Save the solution message to database
-          await therapyService.saveTherapyMessage(solutionMessage)
-          
-          // If this is the current partner's view, add to messages immediately
-          // But only if it's not already in the current messages
-          if (selectedPartner && !messages.some(msg => msg.name === 'SOLUTION')) {
-            setMessages(prev => [...prev, solutionMessage])
+          if (!summaryExists) {
+            if (selectedPartner === partner2Name) {
+              // For second partner: Show as regular AI message (their final summary)
+              const summaryMessage: TherapyMessage = {
+                session_id: sessionId,
+                message: partner2Summary.summary_text,
+                role: 'assistant',
+                name: partner2Name
+              }
+              
+              await therapyService.saveTherapyMessage(summaryMessage)
+              setMessages(prev => [...prev, summaryMessage])
+              
+            } else if (selectedPartner === partner1Name) {
+              // For first partner: Show second partner's summary in their chat
+              const summaryForPartner1: TherapyMessage = {
+                session_id: sessionId,
+                message: `Here's what ${partner2Name} shared:\n\n${partner2Summary.summary_text}`,
+                role: 'assistant',
+                name: partner1Name
+              }
+              
+              await therapyService.saveTherapyMessage(summaryForPartner1)
+              setMessages(prev => [...prev, summaryForPartner1])
+            }
           }
         }
       }
     } catch (error) {
       console.error('Error checking both partners completed:', error)
     }
-  }, [sessionId, session, bothPartnersCompleted, selectedPartner, messages])
+  }, [sessionId, session, bothPartnersCompleted, selectedPartner, allMessages])
 
   // Auto-start conversation for selected partner
   const autoStartConversation = useCallback(async (partnerName: string) => {
@@ -213,28 +199,16 @@ function TherapyChatPageComponent() {
           // Load chat history for the returning user's partner
           const partnerHistory = await therapyService.getTherapyChatHistory(sessionId, storedPartner)
           setMessages(partnerHistory)
-          setAllMessages(partnerHistory) // Cache for consistency
+          // Don't cache individual partner history as allMessages - it should contain all session messages
 
           // Check if this partner has started chatting
           const partnerMessages = partnerHistory.filter(msg => msg.name === storedPartner)
           setHasStartedChatting(partnerMessages.length > 0)
           
-          // Check if solution already exists in messages
-          const hasSolution = partnerHistory.some(msg => msg.name === 'SOLUTION')
-          if (hasSolution) {
+          // Check if both partners have completed their sessions
+          const summaries = await therapyService.getSessionSummaries(sessionId)
+          if (summaries.length >= 2) {
             setBothPartnersCompleted(true)
-            // Get the solution from history for display
-            const solutionMsg = partnerHistory.find(msg => msg.name === 'SOLUTION')
-            if (solutionMsg) {
-              // Extract the solution text from the message
-              const solutionText = solutionMsg.message.replace('🎯 **Final Solution & Recommendations**\n\n', '')
-              setFinalSolution({
-                id: '',
-                session_id: sessionId,
-                partner_name: 'SOLUTION',
-                summary_text: solutionText
-              })
-            }
           }
 
           // Check other partner summary and completion status
@@ -333,22 +307,10 @@ function TherapyChatPageComponent() {
         const partnerMessages = partnerHistory.filter(msg => msg.name === selectedPartner)
         setHasStartedChatting(partnerMessages.length > 0)
         
-        // Check if solution already exists in messages
-        const hasSolution = partnerHistory.some(msg => msg.name === 'SOLUTION')
-        if (hasSolution) {
+        // Check if both partners have completed their sessions
+        const summaries = await therapyService.getSessionSummaries(sessionId)
+        if (summaries.length >= 2) {
           setBothPartnersCompleted(true)
-          // Get the solution from history for display
-          const solutionMsg = partnerHistory.find(msg => msg.name === 'SOLUTION')
-          if (solutionMsg) {
-            // Extract the solution text from the message
-            const solutionText = solutionMsg.message.replace('🎯 **Final Solution & Recommendations**\n\n', '')
-            setFinalSolution({
-              id: '',
-              session_id: sessionId,
-              partner_name: 'SOLUTION',
-              summary_text: solutionText
-            })
-          }
         }
 
         // Check if current partner has completed their chat (has a summary)
@@ -375,7 +337,7 @@ function TherapyChatPageComponent() {
     }
 
     loadChatHistory()
-  }, [selectedPartner, sessionId, partners, toast, allMessages, filterMessagesByPartner, checkBothPartnersCompleted, messages.length])
+  }, [selectedPartner, sessionId])
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -703,20 +665,14 @@ function TherapyChatPageComponent() {
                   }`}
                 >
                   {msg.role === 'assistant' && (
-                    <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center ${
-                      msg.name === 'SOLUTION' ? 'bg-green-600' : 'bg-purple-600'
-                    }`}>
-                      <span className="text-white text-xs">
-                        {msg.name === 'SOLUTION' ? '🎯' : 'AI'}
-                      </span>
+                    <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center bg-purple-600">
+                      <span className="text-white text-xs">AI</span>
                     </div>
                   )}
                   <div
                     className={`relative max-w-[80%] rounded-2xl px-3 py-2 whitespace-pre-wrap break-words text-sm ${
                       msg.role === 'user'
                         ? 'bg-white text-black'
-                        : msg.name === 'SOLUTION'
-                        ? 'bg-green-800 text-white border-2 border-green-600'
                         : 'bg-gray-800 text-white'
                     }`}
                   >

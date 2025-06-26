@@ -124,37 +124,21 @@ export const therapyService = {
       let messages = data || []
       
       if (partnerName) {
-        // Build conversation thread specific to this partner
-        const partnerMessages: TherapyMessage[] = []
-        let expectingAIResponse = false
-        
-        for (let i = 0; i < messages.length; i++) {
-          const msg = messages[i]
-          
+        // Simple and reliable filtering: include messages that belong to this partner
+        const partnerMessages = messages.filter(msg => {
           // Include user messages from this partner
           if (msg.role === 'user' && msg.name === partnerName) {
-            partnerMessages.push(msg)
-            expectingAIResponse = true
+            return true
           }
-          // Include AI responses that come after this partner's messages
-          else if (msg.role === 'assistant' && expectingAIResponse) {
-            partnerMessages.push(msg)
-            expectingAIResponse = false
+          
+          // Include AI messages that are specifically for this partner
+          // (AI messages are saved with the partner name they're intended for)
+          if (msg.role === 'assistant' && msg.name === partnerName) {
+            return true
           }
-          // Include first AI message if it's a conversation starter for this partner
-          else if (msg.role === 'assistant' && partnerMessages.length === 0) {
-            // Check if this is truly the first message in a new conversation thread
-            // by checking if there are no user messages from this partner before it
-            const hasUserMessagesBefore = messages.slice(0, i).some(m => m.role === 'user' && m.name === partnerName)
-            if (!hasUserMessagesBefore) {
-              partnerMessages.push(msg)
-            }
-          }
-          // Include solution messages (visible to both partners)
-          else if (msg.role === 'assistant' && msg.name === 'SOLUTION') {
-            partnerMessages.push(msg)
-          }
-        }
+          
+          return false
+        })
         
         return partnerMessages
       }
