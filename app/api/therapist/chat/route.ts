@@ -150,7 +150,7 @@ Now I'd love to hear from you. What's been going on from your side?"`
         ]
 
     const chatCompletion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: chatMessages as any,
       max_tokens: 500,
     })

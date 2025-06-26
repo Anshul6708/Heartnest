@@ -124,26 +124,39 @@ export const therapyService = {
       let messages = data || []
       
       if (partnerName) {
-        // Simple filtering: only messages from this partner or AI responses immediately following
-        messages = messages.filter((msg, index) => {
+        // Build conversation thread specific to this partner
+        const partnerMessages: TherapyMessage[] = []
+        let expectingAIResponse = false
+        
+        for (let i = 0; i < messages.length; i++) {
+          const msg = messages[i]
+          
           // Include user messages from this partner
           if (msg.role === 'user' && msg.name === partnerName) {
-            return true
+            partnerMessages.push(msg)
+            expectingAIResponse = true
           }
-          // Include AI responses that follow this partner's messages
-          if (msg.role === 'assistant') {
-            // Check if the previous message was from this partner
-            const prevMsg = messages[index - 1]
-            if (prevMsg && prevMsg.role === 'user' && prevMsg.name === partnerName) {
-              return true
-            }
-            // Or if this is the first AI message (conversation starter)
-            if (index === 0 || !prevMsg) {
-              return true
+          // Include AI responses that come after this partner's messages
+          else if (msg.role === 'assistant' && expectingAIResponse) {
+            partnerMessages.push(msg)
+            expectingAIResponse = false
+          }
+          // Include first AI message if it's a conversation starter for this partner
+          else if (msg.role === 'assistant' && partnerMessages.length === 0) {
+            // Check if this is truly the first message in a new conversation thread
+            // by checking if there are no user messages from this partner before it
+            const hasUserMessagesBefore = messages.slice(0, i).some(m => m.role === 'user' && m.name === partnerName)
+            if (!hasUserMessagesBefore) {
+              partnerMessages.push(msg)
             }
           }
-          return false
-        })
+          // Include solution messages (visible to both partners)
+          else if (msg.role === 'assistant' && msg.name === 'SOLUTION') {
+            partnerMessages.push(msg)
+          }
+        }
+        
+        return partnerMessages
       }
 
       return messages
