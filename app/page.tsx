@@ -60,10 +60,10 @@ export default function Home() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-white mb-2">
-            Heartnest
+            OnWavelength
           </h1>
           <p className="text-gray-300 text-lg">
-            AI-powered conflict resolution for couples
+            An AI that listens to both sides of the story.
           </p>
         </div>
         
@@ -75,12 +75,12 @@ export default function Home() {
           <div className="space-y-4">
             <div>
               <label htmlFor="partner1" className="block text-sm font-medium text-gray-200 mb-2">
-                First Partner&apos;s Name
+                Your&apos;s Name
               </label>
               <Input
                 id="partner1"
                 type="text"
-                placeholder="Enter first partner's name"
+                placeholder=""
                 value={partner1Name}
                 onChange={(e) => setPartner1Name(e.target.value)}
                 className="bg-white/20 border-white/30 text-white placeholder:text-gray-300 focus:ring-blue-400 focus:border-blue-400"
@@ -90,12 +90,12 @@ export default function Home() {
             
             <div>
               <label htmlFor="partner2" className="block text-sm font-medium text-gray-200 mb-2">
-                Second Partner&apos;s Name
+                Partner's&apos;s Name
               </label>
               <Input
                 id="partner2"
                 type="text"
-                placeholder="Enter second partner's name"
+                placeholder=""
                 value={partner2Name}
                 onChange={(e) => setPartner2Name(e.target.value)}
                 className="bg-white/20 border-white/30 text-white placeholder:text-gray-300 focus:ring-blue-400 focus:border-blue-400"
@@ -108,7 +108,7 @@ export default function Home() {
               disabled={isLoading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
             >
-              {isLoading ? 'Creating Session...' : 'Start Therapy Session'}
+              {isLoading ? 'Creating Session...' : 'Lets chat'}
             </Button>
           </div>
           
