@@ -56,4 +56,54 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Mobile optimization to prevent auto-zoom */
+@media screen and (max-width: 768px) {
+  /* Prevent zoom on input focus for iOS Safari */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  select,
+  textarea {
+    font-size: 16px !important;
+    /* Ensure minimum font size to prevent iOS zoom */
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+  
+  /* Prevent zoom on any element */
+  * {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  
+  /* Disable touch callouts and selection on mobile */
+  * {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Smooth scrolling for mobile */
+  html {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
+  }
+  
+  /* Prevent zoom on double tap */
+  body {
+    touch-action: manipulation;
+  }
+  
+  /* Ensure viewport stays in place */
+  html, body {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+  }
 } 

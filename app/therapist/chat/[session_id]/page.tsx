@@ -597,7 +597,7 @@ function TherapyChatPageComponent() {
   }
 
   return (
-    <div className="flex h-[100dvh] bg-black overflow-x-hidden">
+    <div className="flex h-[100dvh] bg-black overflow-x-hidden" style={{ touchAction: 'pan-y' }}>
       {/* For new users without selected partner, show partner selection as main screen */}
       {!selectedPartner && isNewUser ? (
         <div className="flex-1 flex items-center justify-center p-4">
