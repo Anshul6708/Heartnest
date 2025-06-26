@@ -829,7 +829,7 @@ function TherapyChatPageComponent() {
                             handleSubmit(e);
                           }
                         }}
-                        placeholder="Share your perspective on the conflict..."
+                        placeholder="Share your perspective..."
                         className="w-full bg-transparent text-white text-base rounded-xl pl-4 pr-14 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none max-h-[120px] min-h-[40px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
                         style={{ height: '40px', fontSize: '16px' }}
                         rows={1}
