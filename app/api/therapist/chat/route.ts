@@ -55,8 +55,8 @@ Tone guidelines:
 
 At the end of 10 user replies, generate a summary with 2 parts:
 
-- “Here’s what I’ve understood about your side of the story:”
-(Write a 4–5 line emotionally clear summary from ${partnerName}'sview.)
+- “Here’s what I’ve understood about your side of the story:” Strictly start this summary with this :- "Looking at everything you've shared"
+(Write a 4–5 line emotionally clear summary from ${partnerName}'s view.)
 
 - "What feels like the next step now?"
 (Offer a thoughtful suggestion — either for reflection, a conversation between ${otherPartnerName} and ${partnerName}, or something each can sit with.)`
@@ -164,7 +164,8 @@ Now I'd love to hear from you. What's been going on from your side?"`
       "here's what i've understood about your side of the story:",
       "here's what i've understood about their perspective so far",
       "what i've understood about your perspective so far",
-      "here's what i have understood so far from your perspective"
+      "here's what i have understood so far from your perspective",
+      "looking at everything you've shared"
     ]
 
     const hasSummaryFormat = summaryMarkers.some(marker => 
