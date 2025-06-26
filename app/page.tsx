@@ -90,7 +90,7 @@ export default function Home() {
             
             <div>
               <label htmlFor="partner2" className="block text-sm font-medium text-gray-200 mb-2">
-                Partner's&apos;s Name
+                Partner&apos;s Name
               </label>
               <Input
                 id="partner2"
